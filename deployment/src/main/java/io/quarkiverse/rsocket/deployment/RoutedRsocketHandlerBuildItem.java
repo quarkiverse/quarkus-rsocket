@@ -1,4 +1,4 @@
-package io.quarkiverse.rsocket;
+package io.quarkiverse.rsocket.deployment;
 
 import io.quarkus.builder.item.MultiBuildItem;
 import io.rsocket.frame.FrameType;
