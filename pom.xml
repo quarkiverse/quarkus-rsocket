@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.quarkiverse.rsocket</groupId>
     <artifactId>quarkus-rsocket-parent</artifactId>
-    <version>0</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -90,8 +90,4 @@
             </modules>
         </profile>
     </profiles>
-
-  <scm>
-    <tag>0</tag>
-  </scm>
 </project>
