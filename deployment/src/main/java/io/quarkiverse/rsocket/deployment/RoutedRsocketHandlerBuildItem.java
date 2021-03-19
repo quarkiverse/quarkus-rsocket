@@ -3,7 +3,7 @@ package io.quarkiverse.rsocket.deployment;
 import io.quarkus.builder.item.MultiBuildItem;
 import io.rsocket.frame.FrameType;
 
-public class RoutedRsocketHandlerBuildItem extends MultiBuildItem {
+public final class RoutedRsocketHandlerBuildItem extends MultiBuildItem {
     private final String path;
     private final String handlerClassName;
     private final FrameType frameType;

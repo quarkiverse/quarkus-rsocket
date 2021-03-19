@@ -1,4 +1,4 @@
-package io.quarkiverse.rsocket;
+package io.quarkiverse.rsocket.deployment;
 
 import java.util.List;
 
@@ -8,8 +8,6 @@ import org.jboss.jandex.DotName;
 import org.jboss.jandex.IndexView;
 import org.jboss.logging.Logger;
 
-import io.quarkiverse.rsocket.deployment.RSocketBuildItem;
-import io.quarkiverse.rsocket.deployment.RoutedRsocketHandlerBuildItem;
 import io.quarkiverse.rsocket.runtime.RSocketConfig;
 import io.quarkiverse.rsocket.runtime.RSocketRecorder;
 import io.quarkiverse.rsocket.runtime.RoutedRsocket;
@@ -57,25 +55,25 @@ public class RsocketProcessor {
             AnnotationInstance pathAnnotationInstance = classInfo.classAnnotation(PATH);
             String path = pathAnnotationInstance.value().asString();
             handlers.produce(new RoutedRsocketHandlerBuildItem(path, classInfo.name().toString(), FrameType.REQUEST_FNF));
-            LOGGER.info("add handler " + classInfo.name().toString());
+            LOGGER.info("add handler " + classInfo.name().toString() + " on route :" + path);
         }
         for (ClassInfo classInfo : index.getAllKnownImplementors(REQUEST_CHANNEL_HANDLER)) {
             AnnotationInstance pathAnnotationInstance = classInfo.classAnnotation(PATH);
             String path = pathAnnotationInstance.value().asString();
             handlers.produce(new RoutedRsocketHandlerBuildItem(path, classInfo.name().toString(), FrameType.REQUEST_CHANNEL));
-            LOGGER.info("add handler " + classInfo.name().toString());
+            LOGGER.info("add handler " + classInfo.name().toString() + " on route :" + path);
         }
         for (ClassInfo classInfo : index.getAllKnownImplementors(REQUEST_RESPONSE_HANDLER)) {
             AnnotationInstance pathAnnotationInstance = classInfo.classAnnotation(PATH);
             String path = pathAnnotationInstance.value().asString();
             handlers.produce(new RoutedRsocketHandlerBuildItem(path, classInfo.name().toString(), FrameType.REQUEST_RESPONSE));
-            LOGGER.info("add handler " + classInfo.name().toString());
+            LOGGER.info("add handler " + classInfo.name().toString() + " on route :" + path);
         }
         for (ClassInfo classInfo : index.getAllKnownImplementors(REQUEST_STREAM_HANDLER)) {
             AnnotationInstance pathAnnotationInstance = classInfo.classAnnotation(PATH);
             String path = pathAnnotationInstance.value().asString();
             handlers.produce(new RoutedRsocketHandlerBuildItem(path, classInfo.name().toString(), FrameType.REQUEST_STREAM));
-            LOGGER.info("add handler " + classInfo.name().toString());
+            LOGGER.info("add handler " + classInfo.name().toString() + " on route :" + path);
         }
     }
 
