@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.enterprise.inject.UnsatisfiedResolutionException;
 import javax.enterprise.inject.spi.CDI;
 
+import org.jboss.logging.Logger;
 import org.reactivestreams.Publisher;
 
 import io.rsocket.Payload;
@@ -17,7 +18,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class RoutedRsocket implements RSocket {
-
+    private static final Logger LOGGER = Logger.getLogger(RoutedRsocket.class);
     private final Map<String, RequestResponseHandler> requestResponseRoutes;
     private final Map<String, FireAndForgetHandler> fireAndForgetRoutes;
     private final Map<String, RequestStreamHandler> requestStreamRoutes;
@@ -118,15 +119,20 @@ public class RoutedRsocket implements RSocket {
     @Override
     public Mono<Payload> requestResponse(Payload payload) {
         try {
+            LOGGER.debug("requestResponse called");
             String route = getRoute(payload);
+            LOGGER.debug("route :" + route);
             if (route != null) {
                 RequestResponseHandler handler = requestResponseRoutes.get(route);
                 if (handler != null) {
+                    LOGGER.debug("handler found");
                     return handler.handle(payload);
                 }
             }
+            LOGGER.debug("handler not found");
             return RSocket.super.requestResponse(payload);
         } catch (Throwable t) {
+            LOGGER.error("request response error", t);
             return Mono.error(t);
         }
     }
