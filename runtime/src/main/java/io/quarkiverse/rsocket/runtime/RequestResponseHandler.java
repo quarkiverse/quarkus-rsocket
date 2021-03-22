@@ -1,8 +1,7 @@
 package io.quarkiverse.rsocket.runtime;
 
-import io.rsocket.Payload;
 import reactor.core.publisher.Mono;
 
-public interface RequestResponseHandler {
-    Mono<Payload> handle(Payload payload);
+public interface RequestResponseHandler<T> {
+    Mono<T> handle(T payload);
 }
