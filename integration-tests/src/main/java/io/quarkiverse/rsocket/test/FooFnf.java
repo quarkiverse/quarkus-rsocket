@@ -7,7 +7,7 @@ import io.rsocket.Payload;
 import reactor.core.publisher.Mono;
 
 @Path("/foo")
-public class FooFnf implements RequestResponseHandler {
+public class FooFnf implements RequestResponseHandler<Payload> {
     @Override
     public Mono<Payload> handle(Payload payload) {
         try {

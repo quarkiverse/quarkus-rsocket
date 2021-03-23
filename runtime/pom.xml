@@ -33,6 +33,10 @@
             <groupId>io.rsocket</groupId>
             <artifactId>rsocket-transport-netty</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jackson</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
