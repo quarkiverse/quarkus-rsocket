@@ -1,10 +1,7 @@
 package io.quarkiverse.rsocket.runtime;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,15 +11,11 @@ import javax.enterprise.inject.spi.CDI;
 import org.jboss.logging.Logger;
 import org.reactivestreams.Publisher;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.metadata.CompositeMetadata;
 import io.rsocket.metadata.TaggingMetadata;
 import io.rsocket.metadata.WellKnownMimeType;
-import io.rsocket.util.DefaultPayload;
-import io.rsocket.util.EmptyPayload;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,6 +25,8 @@ public class RoutedRsocket implements RSocket {
     private final Map<String, FireAndForgetHandler<?>> fireAndForgetRoutes;
     private final Map<String, RequestStreamHandler<?>> requestStreamRoutes;
     private final Map<String, RequestChannelHandler<?>> requestChannelRoutes;
+    private final EncoderManager encoderRegistry;
+    private String mimeType = WellKnownMimeType.APPLICATION_JSON.getString();
 
     RoutedRsocket(Map<String, RequestResponseHandler<?>> requestResponseRoutes,
             Map<String, FireAndForgetHandler<?>> fireAndForgetRoutes,
@@ -41,6 +36,7 @@ public class RoutedRsocket implements RSocket {
         this.fireAndForgetRoutes = fireAndForgetRoutes;
         this.requestStreamRoutes = requestStreamRoutes;
         this.requestChannelRoutes = requestChannelRoutes;
+        encoderRegistry = new EncoderManager();
     }
 
     public static Builder builder() {
@@ -48,7 +44,7 @@ public class RoutedRsocket implements RSocket {
     }
 
     public void setMimeType(String mimetype) {
-        //TODO define decoder/encoder for mime type
+        this.mimeType = mimetype;
     }
 
     private static Class<?> loadClass(String className) {
@@ -126,47 +122,12 @@ public class RoutedRsocket implements RSocket {
 
     }
 
-    private static ObjectMapper mapper;
-
-    //TODO move encoder out of main class to select the best depending of needs (json, cbor,...)
-    // maybe external module is better.
-    private static Payload encode(Object obj) {
-        if (obj instanceof Payload) {
-            return (Payload) obj;
-        } else {
-            // serialize object to payload
-            if (mapper == null) {
-                mapper = new ObjectMapper();
-            }
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            try {
-                mapper.writeValue(stream, obj);
-                return DefaultPayload.create(stream.toByteArray());
-            } catch (IOException e) {
-                e.printStackTrace();
-                return EmptyPayload.INSTANCE;
-            }
-        }
-    }
-
-    private static <T> T decode(Payload payload, Class<T> cls) {
-        if (Payload.class.isAssignableFrom(cls)) {
-            return cls.cast(payload);
-        }
-        ByteBuffer data = payload.getData();
-        try {
-            return mapper.<T> readValue(data.array(), cls);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     @Override
     public Mono<Payload> requestResponse(Payload payload) {
         try {
             LOGGER.debug("requestResponse called");
-            String route = getRoute(payload);
+            Map<String, TaggingMetadata> metadatas = parseMetadata(payload);
+            String route = getRoute(metadatas);
             LOGGER.debug("route :" + route);
             if (route != null) {
 
@@ -175,8 +136,9 @@ public class RoutedRsocket implements RSocket {
                     Class<?> persistentClass = getHandlerGenericParam(handler);
 
                     LOGGER.debug("handler found");
-                    Object obj = decode(payload, persistentClass);
-                    return handleRequestResponse(handler, obj).map(RoutedRsocket::encode);
+                    Encoder encoder = getEncoder(metadatas);
+                    Object obj = encoder.decode(payload, persistentClass);
+                    return handleRequestResponse(handler, obj).map(encoder::encode);
                 }
             }
             LOGGER.debug("handler not found");
@@ -209,12 +171,14 @@ public class RoutedRsocket implements RSocket {
     @Override
     public Mono<Void> fireAndForget(Payload payload) {
         try {
-            String route = getRoute(payload);
+            Map<String, TaggingMetadata> metadatas = parseMetadata(payload);
+            String route = getRoute(metadatas);
             if (route != null) {
                 FireAndForgetHandler<?> handler = fireAndForgetRoutes.get(route);
                 if (handler != null) {
                     Class<?> persistentClass = getHandlerGenericParam(handler);
-                    return handleFireAndForget(handler, decode(payload, persistentClass));
+                    Encoder encoder = getEncoder(metadatas);
+                    return handleFireAndForget(handler, encoder.decode(payload, persistentClass));
                 }
             }
             return RSocket.super.fireAndForget(payload);
@@ -230,12 +194,14 @@ public class RoutedRsocket implements RSocket {
     @Override
     public Flux<Payload> requestStream(Payload payload) {
         try {
-            String route = getRoute(payload);
+            Map<String, TaggingMetadata> metadatas = parseMetadata(payload);
+            String route = getRoute(metadatas);
             if (route != null) {
                 RequestStreamHandler<?> handler = requestStreamRoutes.get(route);
                 if (handler != null) {
                     Class<?> persistentClass = getHandlerGenericParam(handler);
-                    return handleRequestStream(handler, decode(payload, persistentClass)).map(RoutedRsocket::encode);
+                    Encoder encoder = getEncoder(metadatas);
+                    return handleRequestStream(handler, encoder.decode(payload, persistentClass)).map(encoder::encode);
                 }
             }
             return RSocket.super.requestStream(payload);
@@ -258,14 +224,15 @@ public class RoutedRsocket implements RSocket {
                                 payload = signal.get();
                                 if (payload != null) {
 
-                                    String route = getRoute(payload);
+                                    Map<String, TaggingMetadata> metadatas = parseMetadata(payload);
+                                    String route = getRoute(metadatas);
                                     if (route != null) {
                                         RequestChannelHandler<?> handler = requestChannelRoutes.get(route);
                                         if (handler != null) {
                                             Class<?> persistentClass = getHandlerGenericParam(handler);
-                                            return handleRequestChannel(handler, flows.map(pl -> {
-                                                return RoutedRsocket.decode(pl, persistentClass);
-                                            })).map(RoutedRsocket::encode);
+                                            Encoder encoder = getEncoder(metadatas);
+                                            return handleRequestChannel(handler,
+                                                    flows.map(pl -> encoder.decode(pl, persistentClass))).map(encoder::encode);
                                         }
                                     }
                                 }
@@ -302,13 +269,23 @@ public class RoutedRsocket implements RSocket {
         return metadataMap;
     }
 
-    private String getRoute(Payload payload) {
-        Map<String, TaggingMetadata> metadatas = parseMetadata(payload);
-        TaggingMetadata routeRetadata = metadatas.get(WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.getString());
-        if (routeRetadata != null) {
-            for (String route : routeRetadata) {
-                return route;
-            }
+    private Encoder getEncoder(Map<String, TaggingMetadata> metadatas) {
+        //PerStreamDataMimeTypes
+        TaggingMetadata mimetypeMetadata = metadatas.get(WellKnownMimeType.MESSAGE_RSOCKET_MIMETYPE.getString());
+        Encoder res = null;
+        if (mimetypeMetadata != null && mimetypeMetadata.iterator().hasNext()) {
+            res = encoderRegistry.getEncoder(mimetypeMetadata.iterator().next());
+        }
+        if (res != null)
+            return res;
+        // else encoder from ConnectionSetupPayload
+        return encoderRegistry.getEncoder(mimeType);
+    }
+
+    private String getRoute(Map<String, TaggingMetadata> metadatas) {
+        TaggingMetadata routeMetadata = metadatas.get(WellKnownMimeType.MESSAGE_RSOCKET_ROUTING.getString());
+        if (routeMetadata != null && routeMetadata.iterator().hasNext()) {
+            return routeMetadata.iterator().next();
         }
         return null;
     }
