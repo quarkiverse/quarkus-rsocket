@@ -42,6 +42,7 @@ public class RSocketTestCase {
         ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(hello));
         Payload rspPayload = RSocketConnector.create()
                 .metadataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString())
+                .dataMimeType(WellKnownMimeType.APPLICATION_JSON.getString())
                 //.payloadDecoder(PayloadDecoder.ZERO_COPY)
                 .connect(TcpClientTransport.create("127.0.0.1", 7000))
                 .block()

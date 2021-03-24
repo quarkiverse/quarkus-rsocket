@@ -7,6 +7,8 @@ import org.jboss.logging.Logger;
 
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketServer;
+import io.rsocket.exceptions.RejectedSetupException;
+import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import reactor.core.publisher.Mono;
@@ -26,6 +28,10 @@ public class NettyRSocketServer {
         server = RSocketServer.create();
         server.acceptor((setupPayload, reactiveSocket) -> {
             String mimetype = setupPayload.dataMimeType();
+            String metaMimetype = setupPayload.metadataMimeType();
+            if (!metaMimetype.equals(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString())) {
+                return Mono.error(new RejectedSetupException("Unsupported metadata mime type."));
+            }
             if (rsocket instanceof RoutedRsocket) {
                 RoutedRsocket routedSocket = (RoutedRsocket) rsocket;
                 routedSocket.setMimeType(mimetype);
