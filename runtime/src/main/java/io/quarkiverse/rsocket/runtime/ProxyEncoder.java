@@ -5,7 +5,7 @@ import io.rsocket.Payload;
 public class ProxyEncoder implements Encoder {
     @Override
     public Payload encode(Object obj) {
-        if (obj instanceof  Payload)
+        if (obj instanceof Payload)
             return (Payload) obj;
         return null;
     }

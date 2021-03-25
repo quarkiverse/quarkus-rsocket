@@ -19,6 +19,6 @@ public class EncoderManager {
 
     public Encoder getEncoder(String mime) {
         Encoder encoder = encoders.get(mime);
-        return encoder != null? encoder : proxy;
+        return encoder != null ? encoder : proxy;
     }
 }

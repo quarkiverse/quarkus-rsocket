@@ -5,7 +5,6 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
-import io.quarkiverse.rsocket.runtime.JsonEncoder;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -15,6 +14,7 @@ import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
+import io.quarkiverse.rsocket.runtime.JsonEncoder;
 import io.quarkus.test.junit.QuarkusTest;
 import io.rsocket.Payload;
 import io.rsocket.core.RSocketConnector;
