@@ -5,6 +5,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
+import io.quarkiverse.rsocket.runtime.JsonEncoder;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ public class RSocketTestCase {
     private static final Logger LOGGER = Logger.getLogger(RSocketTestCase.class);
 
     @Test
-    public void testRSocket() {
+    public void testRSocketRoute() {
         String hello = "Hello RSocket";
         CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
         RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(ByteBufAllocator.DEFAULT,
@@ -42,7 +43,6 @@ public class RSocketTestCase {
         ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(hello));
         Payload rspPayload = RSocketConnector.create()
                 .metadataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString())
-                .dataMimeType(WellKnownMimeType.APPLICATION_JSON.getString())
                 //.payloadDecoder(PayloadDecoder.ZERO_COPY)
                 .connect(TcpClientTransport.create("127.0.0.1", 7000))
                 .block()
@@ -50,5 +50,30 @@ public class RSocketTestCase {
                 .block();
         metadata.release();
         Assertions.assertEquals(hello, rspPayload.getDataUtf8(), "failed to get response");
+    }
+
+    @Test
+    public void testRSocketEncoder() {
+
+        CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
+        RoutingMetadata routingMetadata = TaggingMetadataCodec.createRoutingMetadata(ByteBufAllocator.DEFAULT,
+                Collections.singletonList("/foo"));
+        CompositeMetadataCodec.encodeAndAddMetadata(metadata,
+                ByteBufAllocator.DEFAULT,
+                WellKnownMimeType.MESSAGE_RSOCKET_ROUTING,
+                routingMetadata.getContent());
+        Car c = new Car();
+        c.setName("batmobile");
+        JsonEncoder encoder = new JsonEncoder();
+        Payload payload = encoder.encode(c);
+        Payload rspPayload = RSocketConnector.create()
+                .metadataMimeType(WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA.getString())
+                //.payloadDecoder(PayloadDecoder.ZERO_COPY)
+                .connect(TcpClientTransport.create("127.0.0.1", 7000))
+                .block()
+                .requestResponse(DefaultPayload.create(payload.getData(), metadata.nioBuffer()))
+                .block();
+        metadata.release();
+        Assertions.assertEquals("{\"name\":\"batmobile\"}", rspPayload.getDataUtf8(), "failed to get response");
     }
 }
