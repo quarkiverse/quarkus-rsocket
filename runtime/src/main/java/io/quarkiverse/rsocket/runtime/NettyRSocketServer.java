@@ -35,6 +35,9 @@ public class NettyRSocketServer {
             if (rsocket instanceof RoutedRsocket) {
                 RoutedRsocket routedSocket = (RoutedRsocket) rsocket;
                 routedSocket.setMimeType(mimetype);
+                if (!routedSocket.isAuthValid(setupPayload)) {
+                    return Mono.error(new RejectedSetupException("Authentication failed"));
+                }
             }
             return Mono.just(rsocket);
         });

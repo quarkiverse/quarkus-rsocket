@@ -11,6 +11,7 @@ import javax.enterprise.inject.spi.CDI;
 import org.jboss.logging.Logger;
 import org.reactivestreams.Publisher;
 
+import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.metadata.CompositeMetadata;
@@ -77,6 +78,11 @@ public class RoutedRsocket implements RSocket {
         } catch (ReflectiveOperationException | RuntimeException e) {
             return null;
         }
+    }
+
+    public boolean isAuthValid(ConnectionSetupPayload setupPayload) {
+        //TODO authentication...
+        return true;
     }
 
     public static final class Builder {

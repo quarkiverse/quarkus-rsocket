@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketClient;
@@ -12,11 +14,13 @@ import io.rsocket.core.Resume;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.lease.LeaseStats;
 import io.rsocket.lease.Leases;
+import io.rsocket.metadata.AuthMetadataCodec;
 import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.plugins.InterceptorRegistry;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import io.rsocket.util.DefaultPayload;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -39,6 +43,18 @@ public class QuarkusRSocketConnector {
         return create().connect(() -> {
             return transport;
         });
+    }
+
+    public void authBearer(String token) {
+        ByteBuf byteBuf = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT,
+                token.toCharArray());
+        proxy.setupPayload(DefaultPayload.create(DefaultPayload.EMPTY_BUFFER, byteBuf.nioBuffer()));
+    }
+
+    public void authSimple(String username, String password) {
+        ByteBuf byteBuf = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT,
+                username.toCharArray(), password.toCharArray());
+        proxy.setupPayload(DefaultPayload.create(DefaultPayload.EMPTY_BUFFER, byteBuf.nioBuffer()));
     }
 
     public QuarkusRSocketConnector setupPayload(Mono<Payload> setupPayloadMono) {
