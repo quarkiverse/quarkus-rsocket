@@ -17,6 +17,7 @@ import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.runtime.RuntimeValue;
 import io.rsocket.frame.FrameType;
 
@@ -38,6 +39,11 @@ public class RsocketProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    @BuildStep
+    void nativeSupport(BuildProducer<ReflectiveClassBuildItem> reflectives) {
+        reflectives.produce(new ReflectiveClassBuildItem(true, true, "sun.misc.Unsafe"));
     }
 
     @BuildStep
