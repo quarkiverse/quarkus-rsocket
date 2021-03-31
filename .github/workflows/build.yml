@@ -45,8 +45,9 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        # refresh cache every month to avoid unlimited growth
-        key: maven-repo-${{ runner.os }}-${{ steps.get-date.outputs.date }}
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
 
     - name: Build - JVM
       run: mvn -B formatter:validate verify --file pom.xml
