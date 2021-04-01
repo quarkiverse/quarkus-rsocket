@@ -50,7 +50,7 @@ jobs:
           ${{ runner.os }}-maven-
 
     - name: Build - JVM
-      run: mvn -B formatter:validate verify --file pom.xml
+      run: mvn -B formatter:validate install --file pom.xml
 
     - name: Build - Native
       run: mvn -B verify -Pnative --file integration-tests/pom.xml
