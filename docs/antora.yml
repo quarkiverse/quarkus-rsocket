@@ -1,5 +1,5 @@
 name: quarkus-rsocket
-title: '- Rsocket'
+title: Rsocket
 version: dev
 nav:
   - modules/ROOT/nav.adoc
