@@ -38,16 +38,6 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>io.quarkiverse.rsocket</groupId>
-                <artifactId>quarkus-rsocket</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.quarkiverse.rsocket</groupId>
-                <artifactId>quarkus-rsocket-deployment</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>io.rsocket</groupId>
                 <artifactId>rsocket-core</artifactId>
                 <version>${rsocket.version}</version>
